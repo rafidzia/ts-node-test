@@ -24,14 +24,18 @@ export interface Options {
 
 export async function main (paths: string[], options: Options): Promise<void> {
   const require = createRequire(import.meta.url)
-  const esmLoader = pathToFileURL(require.resolve('ts-node/esm')).toString()
-  const extensions = getTestExtensions()
+  const tsnodeRegister = pathToFileURL(require.resolve('ts-node/register')).toString()
+  let extensions = getTestExtensions()
+  if(paths.length == 1 && paths[0].startsWith('*')) {
+    extensions = [paths[0]]
+    paths = ["./"]
+  }
   const resolvedPaths = await resolveTestPaths(paths, extensions)
   if (resolvedPaths.length === 0) {
     throw new Error('no test files found')
   }
 
-  spawnChild(esmLoader, resolvedPaths, options)
+  spawnChild(tsnodeRegister, resolvedPaths, options)
 }
 
 /**
@@ -41,8 +45,8 @@ export async function main (paths: string[], options: Options): Promise<void> {
  * @param resolvedTestPaths The files under test.
  * @param options Additional options.
  */
-function spawnChild (loader: string, resolvedTestPaths: string[], options: Options): void {
-  const args = ['--loader', loader, '--test', ...getOptionFlags(options), ...resolvedTestPaths]
+function spawnChild (register: string, resolvedTestPaths: string[], options: Options): void {
+  const args = ['--require', register, '--test', ...getOptionFlags(options), ...resolvedTestPaths]
   const child = spawn(process.execPath, args, {
     stdio: 'inherit',
     argv0: process.argv0
